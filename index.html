@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Диэлектрики — Интерактивный учебник</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0a0a1a;
+    color: #e0e0ff;
+    overflow-x: hidden;
+  }
+
+  /* ===== HERO ===== */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: radial-gradient(ellipse at center, #0d0d2b 0%, #0a0a1a 70%);
+  }
+
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    text-align: center;
+    color: #a0c4ff;
+    text-shadow: 0 0 30px #4488ff88;
+    margin-bottom: 10px;
+    z-index: 2;
+  }
+
+  .hero p.subtitle {
+    color: #7090b0;
+    font-size: 1.1rem;
+    margin-bottom: 40px;
+    z-index: 2;
+  }
+
+  /* ===== 3D CANVAS ===== */
+  #atomCanvas {
+    border-radius: 50%;
+    box-shadow: 0 0 60px #2244aa44;
+    cursor: grab;
+    z-index: 2;
+    touch-action: none;
+  }
+  #atomCanvas:active { cursor: grabbing; }
+
+  .canvas-hint {
+    color: #445566;
+    font-size: 0.85rem;
+    margin-top: 12px;
+    z-index: 2;
+  }
+
+  .scroll-down {
+    margin-top: 40px;
+    color: #4488ff;
+    font-size: 0.9rem;
+    animation: bounce 2s infinite;
+    z-index: 2;
+    cursor: pointer;
+    border: 1px solid #4488ff44;
+    padding: 10px 28px;
+    border-radius: 30px;
+    transition: background 0.3s;
+  }
+  .scroll-down:hover { background: #4488ff22; }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(8px); }
+  }
+
+  /* ===== CLICK POPUP ===== */
+  .popup {
+    display: none;
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #0f1f3d, #1a2a50);
+    border: 1px solid #4488ff55;
+    border-radius: 16px;
+    padding: 28px;
+    max-width: 420px;
+    width: 90%;
+    z-index: 1000;
+    box-shadow: 0 0 60px #2244aa88;
+    animation: popIn 0.3s ease;
+  }
+  .popup.show { display: block; }
+
+  @keyframes popIn {
+    from { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+    to   { transform: translate(-50%, -50%) scale(1);   opacity: 1; }
+  }
+
+  .popup h3 {
+    color: #a0c4ff;
+    font-size: 1.2rem;
+    margin-bottom: 12px;
+  }
+  .popup p {
+    color: #c0d8ff;
+    line-height: 1.7;
+    font-size: 0.95rem;
+  }
+  .popup-close {
+    position: absolute;
+    top: 12px; right: 16px;
+    cursor: pointer;
+    color: #4488ff;
+    font-size: 1.4rem;
+    line-height: 1;
+  }
+  .popup-close:hover { color: #fff; }
+
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #00000088;
+    z-index: 999;
+  }
+  .overlay.show { display: block; }
+
+  /* ===== LEGEND ===== */
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 24px;
+    z-index: 2;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid transparent;
+    transition: all 0.3s;
+    font-size: 0.9rem;
+  }
+  .legend-item:hover {
+    border-color: #4488ff55;
+    background: #4488ff11;
+  }
+
+  .dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+  .dot-nucleus { background: radial-gradient(circle, #ff8844, #ff4400); box-shadow: 0 0 8px #ff6622; }
+  .dot-electron { background: radial-gradient(circle, #88aaff, #4466ff); box-shadow: 0 0 8px #4466ff; }
+  .dot-orbit { background: transparent; border: 2px solid #4488ff55; }
+  .dot-positive { background: radial-gradient(circle, #ff6666, #cc0000); box-shadow: 0 0 6px #ff4444; }
+  .dot-molecule { background: radial-gradient(circle, #aaffaa, #44bb44); box-shadow: 0 0 6px #44ff44; }
+
+  /* ===== SECTIONS NAV ===== */
+  .sections-nav {
+    padding: 60px 20px 20px;
+    text-align: center;
+  }
+  .sections-nav h2 {
+    font-size: 2rem;
+    color: #a0c4ff;
+    margin-bottom: 8px;
+  }
+  .sections-nav p {
+    color: #6688aa;
+    margin-bottom: 40px;
+  }
+
+  .topics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+
+  .topic-card {
+    background: linear-gradient(135deg, #0f1a30, #121e38);
+    border: 1px solid #1e3060;
+    border-radius: 14px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .topic-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #4488ff11, transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .topic-card:hover {
+    border-color: #4488ff66;
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px #4488ff22;
+  }
+  .topic-card:hover::before { opacity: 1; }
+
+  .topic-num {
+    font-size: 0.8rem;
+    color: #4488ff88;
+    margin-bottom: 6px;
+  }
+  .topic-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+  }
+  .topic-title {
+    font-size: 1rem;
+    color: #c0d8ff;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .topic-preview {
+    font-size: 0.82rem;
+    color: #6688aa;
+    line-height: 1.5;
+  }
+
+  /* ===== MODAL ===== */
+  .modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #00000099;
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal.show { display: flex; }
+
+  .modal-content {
+    background: linear-gradient(160deg, #0d1b35, #111e40);
+    border: 1px solid #2244aa55;
+    border-radius: 20px;
+    padding: 36px;
+    max-width: 700px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 0 80px #2244aa44;
+    animation: slideUp 0.35s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(40px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+
+  .modal-content::-webkit-scrollbar { width: 6px; }
+  .modal-content::-webkit-scrollbar-track { background: #0d1b35; }
+  .modal-content::-webkit-scrollbar-thumb { background: #2244aa; border-radius: 3px; }
+
+  .modal-num { color: #4488ff88; font-size: 0.85rem; margin-bottom: 6px; }
+  .modal-title {
+    font-size: 1.6rem;
+    color: #a0c4ff;
+    margin-bottom: 20px;
+    line-height: 1.3;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 16px; right: 20px;
+    font-size: 1.6rem;
+    cursor: pointer;
+    color: #4488ff;
+    line-height: 1;
+  }
+  .modal-close:hover { color: #fff; }
+
+  .modal-body h4 {
+    color: #88bbff;
+    margin: 20px 0 8px;
+    font-size: 1rem;
+  }
+  .modal-body p {
+    color: #b0ccea;
+    line-height: 1.8;
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+  }
+  .modal-body ul {
+    padding-left: 20px;
+    margin-bottom: 12px;
+  }
+  .modal-body ul li {
+    color: #9ab8dd;
+    line-height: 1.9;
+    font-size: 0.93rem;
+  }
+  .modal-body .highlight {
+    background: #1a3060;
+    border-left: 3px solid #4488ff;
+    padding: 14px 18px;
+    border-radius: 0 10px 10px 0;
+    margin: 14px 0;
+    font-size: 0.93rem;
+    color: #c0d8ff;
+    line-height: 1.7;
+  }
+  .modal-body .formula {
+    background: #0a1428;
+    border: 1px solid #2244aa55;
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+    font-size: 1.1rem;
+    color: #88ccff;
+    margin: 14px 0;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+  }
+  .tag {
+    display: inline-block;
+    background: #1a3060;
+    color: #88aaff;
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 0.8rem;
+    margin: 3px;
+  }
+
+  /* ===== FOOTER ===== */
+  footer {
+    text-align: center;
+    padding: 40px;
+    color: #2a3a5a;
+    font-size: 0.85rem;
+    border-top: 1px solid #1a2a40;
+    margin-top: 80px;
+  }
+
+  /* ===== SCROLL PROGRESS ===== */
+  .progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #4488ff, #88ccff);
+    z-index: 9999;
+    transition: width 0.1s;
+  }
+</style>
+</head>
+<body>
+
+<div class="progress-bar" id="progressBar"></div>
+<div class="overlay" id="overlay" onclick="closePopup()"></div>
+
+<!-- POPUP for canvas clicks -->
+<div class="popup" id="popup">
+  <span class="popup-close" onclick="closePopup()">✕</span>
+  <h3 id="popup-title"></h3>
+  <p id="popup-text"></p>
+</div>
+
+<!-- MODAL for topic cards -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <span class="modal-close" onclick="closeModal()">✕</span>
+    <div class="modal-num" id="modal-num"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ==================== HERO ==================== -->
+<section class="hero" id="home">
+  <h1>⚡ Диэлектрики</h1>
+  <p class="subtitle">Интерактивный учебник по физике</p>
+
+  <canvas id="atomCanvas" width="420" height="420"></canvas>
+  <p class="canvas-hint">👆 Нажми на ядро, электрон или молекулу — узнай подробнее</p>
+
+  <div class="legend">
+    <div class="legend-item" onclick="showPopup('nucleus')">
+      <div class="dot dot-nucleus"></div> Ядро (+ заряд)
+    </div>
+    <div class="legend-item" onclick="showPopup('electron')">
+      <div class="dot dot-electron"></div> Электрон (− заряд)
+    </div>
+    <div class="legend-item" onclick="showPopup('orbit')">
+      <div class="dot dot-orbit" style="width:20px;height:20px;"></div> Орбита
+    </div>
+    <div class="legend-item" onclick="showPopup('polarization')">
+      <div class="dot dot-positive"></div> Поляризация
+    </div>
+    <div class="legend-item" onclick="showPopup('molecule')">
+      <div class="dot dot-molecule"></div> Молекула
+    </div>
+  </div>
+
+  <div class="scroll-down" onclick="document.getElementById('topics').scrollIntoView({behavior:'smooth'})">
+    ↓ Перейти к темам
+  </div>
+</section>
+
+<!-- ==================== TOPICS ==================== -->
+<section id="topics">
+  <div class="sections-nav">
+    <h2>📚 Все темы</h2>
+    <p>Нажми на карточку — откроется подробное объяснение</p>
+  </div>
+
+  <div class="topics-grid" id="topicsGrid"></div>
+</section>
+
+<footer>
+  Интерактивный учебник по диэлектрикам · Физика
+</footer>
+
+<script>
+// ================================================================
+//  POPUP DATA (for 3D model clicks)
+// ================================================================
+const popupData = {
+  nucleus: {
+    title: '⚛️ Ядро атома (положительный заряд)',
+    text: 'Ядро состоит из протонов (+ заряд) и нейтронов. В диэлектриках ядро жёстко удерживает электроны вокруг себя — именно поэтому заряды не могут свободно перемещаться. В электрическом поле ядро практически не смещается.'
+  },
+  electron: {
+    title: '🔵 Электрон (отрицательный заряд)',
+    text: 'Электроны в диэлектриках прочно связаны с ядром — это «связанные заряды». В отличие от металлов, они не могут свободно перемещаться по всему веществу. В электрическом поле они лишь чуть-чуть смещаются относительно ядра — это и есть поляризация.'
+  },
+  orbit: {
+    title: '🔄 Электронная орбита',
+    text: 'Орбита — траектория движения электрона вокруг ядра. В диэлектриках все орбиталь замкнуты внутри атома или молекулы. Электрон «прикован» к своей орбите и не может покинуть атом, как это происходит в проводниках.'
+  },
+  polarization: {
+    title: '⚡ Поляризация диэлектрика',
+    text: 'При воздействии внешнего электрического поля центры положительных и отрицательных зарядов смещаются. Вещество поляризуется — на его поверхности появляются связанные заряды, а внутри создаётся поле, направленное против внешнего. Ток при этом не течёт!'
+  },
+  molecule: {
+    title: '🧬 Молекула диэлектрика',
+    text: 'В неполярных диэлектриках (парафин, водород) центры "+" и "−" зарядов совпадают — молекула нейтральна. В полярных (вода, HCl) — центры смещены, молекула ведёт себя как постоянный диполь. В поле такие молекулы поворачиваются вдоль силовых линий.'
+  }
+};
+
+// ================================================================
+//  TOPICS DATA (13 тем)
+// ================================================================
+const topics = [
+  {
+    num: '01',
+    icon: '📖',
+    title: 'Введение: что изучает тема диэлектриков',
+    preview: 'Место диэлектриков в физике, история изучения, значение в природе и технике.',
+    body: `
+      <h4>Что такое раздел «Диэлектрики»?</h4>
+      <p>Раздел физики, посвящённый диэлектрикам, изучает вещества, которые практически не проводят электрический ток. Это один из ключевых разделов электростатики и электродинамики.</p>
+      <div class="highlight">🎯 Главный вопрос темы: почему одни вещества проводят ток, а другие — нет? И что происходит с «непроводящим» веществом в электрическом поле?</div>
+      <h4>История изучения</h4>
+      <p>Ещё в XVII–XVIII веках учёные заметили, что некоторые материалы (стекло, смола, шёлк) накапливают заряд, но не проводят его. Фарадей в XIX веке ввёл термин «диэлектрик» (от греч. «через» и «электрон» — т.е. не пропускающий).</p>
+      <h4>Где это важно?</h4>
+      <ul>
+        <li>⚡ Изоляция проводов и кабелей</li>
+        <li>📱 Конденсаторы в электронике</li>
+        <li>🔬 Оптика и лазерная физика</li>
+        <li>🧪 Химия и материаловедение</li>
+        <li>🌿 Природные диэлектрики: дерево, воздух, вода (дистиллированная)</li>
+      </ul>
+      <div class="highlight">📌 Изучая диэлектрики, мы понимаем, как работает изоляция, почему конденсаторы накапливают энергию и как свет взаимодействует с веществом.</div>
+    `
+  },
+  {
+    num: '02',
+    icon: '⚙️',
+    title: 'Определение диэлектриков и их свойства',
+    preview: 'Что такое диэлектрик, ключевые свойства, примеры материалов.',
+    body: `
+      <h4>Определение</h4>
+      <div class="highlight">📌 Диэлектрик — вещество, в котором отсутствуют свободные носители заряда, и которое практически не проводит электрический ток.</div>
+      <h4>Ключевые свойства</h4>
+      <ul>
+        <li>🔒 Все заряды прочно связаны с атомами/молекулами</li>
+        <li>❌ Отсутствие свободных электронов</li>
+        <li>⚡ Поляризуется в электрическом поле</li>
+        <li>🛡️ Высокое электрическое сопротивление</li>
+        <li>💡 Способность накапливать электрическую энергию</li>
+      </ul>
+      <h4>Примеры диэлектриков</h4>
+      <ul>
+        <li>🪨 Неорганические: стекло, слюда, кварц, керамика</li>
+        <li>🌿 Органические: парафин, каучук, полиэтилен, пластмасса</li>
+        <li>💧 Жидкости: трансформаторное масло, дистиллированная вода</li>
+        <li>💨 Газы: воздух, азот, элегаз (SF₆)</li>
+      </ul>
+      <h4>Сравнение: проводник vs диэлектрик</h4>
+      <div class="highlight">
+        🔗 Проводник: есть свободные электроны → ток течёт легко<br>
+        🔒 Диэлектрик: все заряды связаны → ток не течёт (или ничтожно мал)
+      </div>
+    `
+  },
+  {
+    num: '03',
+    icon: '🌐',
+    title: 'Диэлектрик в электростатическом поле',
+    preview: 'Общее поведение диэлектрика при помещении в электрическое поле.',
+    body: `
+      <h4>Что происходит с диэлектриком в поле?</h4>
+      <p>Когда диэлектрик помещают в электростатическое поле, он не проводит ток — но и не остаётся безучастным. Внутри вещества происходят важные изменения.</p>
+      <h4>Три эффекта</h4>
+      <ul>
+        <li>🔵 <b>Смещение зарядов</b> — электроны немного смещаются в сторону, противоположную полю</li>
+        <li>🔄 <b>Поворот диполей</b> — полярные молекулы разворачиваются вдоль силовых линий поля</li>
+        <li>⚡ <b>Появление связанных зарядов</b> на поверхности диэлектрика</li>
+      </ul>
+      <div class="highlight">
+        📌 Итог: диэлектрик поляризуется. На его поверхностях появляются заряды, создающие собственное поле — направленное ПРОТИВ внешнего.
+      </div>
+      <h4>Результирующее поле</h4>
+      <p>Поле внутри диэлектрика слабее внешнего поля. Отношение внешнего поля к полю внутри — это диэлектрическая проницаемость ε.</p>
+      <div class="formula">E = E₀ / ε</div>
+      <p>Чем больше ε, тем сильнее диэлектрик «ослабляет» поле внутри себя.</p>
+    `
+  },
+  {
+    num: '04',
+    icon: '⚛️',
+    title: 'Строение атома в диэлектриках',
+    preview: 'Ядро, электроны, связанные заряды. Почему электроны не могут двигаться свободно.',
+    body: `
+      <h4>Атом диэлектрика — что внутри?</h4>
+      <p>Атом любого вещества состоит из положительно заряженного ядра (протоны + нейтроны) и отрицательно заряженных электронов, которые движутся вокруг ядра.</p>
+      <h4>Главное отличие от металлов</h4>
+      <div class="highlight">
+        🔗 В металлах: часть электронов (валентные) оторваны от атомов и свободно движутся — это «электронный газ».<br><br>
+        🔒 В диэлектриках: все электроны прочно удерживаются своим ядром. Нет ни одного свободного электрона.
+      </div>
+      <h4>Энергетические зоны (упрощённо)</h4>
+      <ul>
+        <li>📊 В диэлектрике между валентной зоной и зоной проводимости — широкая запрещённая зона (> 3 эВ)</li>
+        <li>⚡ Электрон не может «перепрыгнуть» в зону проводимости при обычных условиях</li>
+        <li>🌡️ Только при очень высоких температурах или напряжениях возможен пробой</li>
+      </ul>
+      <h4>Суммарный заряд атома</h4>
+      <p>В нормальном состоянии атом нейтрален: число протонов = числу электронов. Положительный и отрицательный заряды точно компенсируют друг друга.</p>
+      <div class="formula">q_ядра = +Ze,  q_электронов = −Ze  →  q_атома = 0</div>
+    `
+  },
+  {
+    num: '05',
+    icon: '↔️',
+    title: 'Электрический диполь и его характеристики',
+    preview: 'Что такое диполь, дипольный момент, плечо диполя.',
+    body: `
+      <h4>Что такое электрический диполь?</h4>
+      <div class="highlight">📌 Электрический диполь — система двух равных по модулю, но противоположных по знаку зарядов (+q и −q), разделённых расстоянием ℓ.</div>
+      <h4>Основные характеристики</h4>
+      <ul>
+        <li><b>Плечо диполя (ℓ)</b> — расстояние между зарядами +q и −q</li>
+        <li><b>Дипольный момент (p)</b> — векторная величина, характеризующая диполь</li>
+      </ul>
+      <div class="formula">p = q · ℓ  (Кл·м)</div>
+      <p>Вектор <b>p</b> направлен от отрицательного заряда к положительному.</p>
+      <h4>Диполь в электрическом поле</h4>
+      <ul>
+        <li>🔄 В однородном поле диполь поворачивается вдоль поля</li>
+        <li>📐 Момент сил: M = p · E · sin(α)</li>
+        <li>⚡ В неоднородном поле — ещё и смещается в сторону большего поля</li>
+      </ul>
+      <h4>Почему это важно для диэлектриков?</h4>
+      <p>Каждый атом/молекула диэлектрика ведёт себя как диполь (или становится им в поле). Суммарный дипольный момент всех частиц — это и есть поляризация вещества.</p>
+      <div class="formula">P = n · p̄  (Кл/м²)</div>
+      <p>где n — концентрация молекул, p̄ — средний дипольный момент молекулы.</p>
+    `
+  },
+  {
+    num: '06',
+    icon: '📊',
+    title: 'Классификация диэлектриков',
+    preview: 'Обзор: полярные, неполярные, ионные диэлектрики. Чем они отличаются.',
+    body: `
+      <h4>Основная классификация</h4>
+      <p>По строению молекул и механизму поляризации все диэлектрики делятся на три основных типа:</p>
+      <h4>⚪ 1. Неполярные диэлектрики</h4>
+      <ul>
+        <li>Центры положительных и отрицательных зарядов совпадают</li>
+        <li>Собственного дипольного момента нет: p₀ = 0</li>
+        <li>Примеры: H₂, N₂, O₂, CH₄, парафин, полиэтилен</li>
+      </ul>
+      <h4>🔴 2. Полярные диэлектрики</h4>
+      <ul>
+        <li>Центры зарядов не совпадают даже без поля</li>
+        <li>Постоянный дипольный момент: p₀ ≠ 0</li>
+        <li>Примеры: H₂O, HCl, NH₃, CO, спирты</li>
+      </ul>
+      <h4>🟡 3. Ионные диэлектрики</h4>
+      <ul>
+        <li>Состоят из ионов, а не нейтральных молекул</li>
+        <li>В поле ионы смещаются: одни — вдоль поля, другие — против</li>
+        <li>Примеры: NaCl (поваренная соль), KBr, LiF</li>
+      </ul>
+      <div class="highlight">
+        📌 Дополнительно: сегнетоэлектрики (спонтанная поляризация, напр. BaTiO₃) и пьезоэлектрики (поляризация при механическом давлении, напр. кварц).
+      </div>
+    `
+  },
+  {
+    num: '07',
+    icon: '🔴',
+    title: 'Полярные диэлектрики (подробно)',
+    preview: 'Постоянный дипольный момент, хаотичное расположение, поведение в поле.',
+    body: `
+      <h4>Строение полярных диэлектриков</h4>
+      <p>В полярных диэлектриках молекулы имеют несимметричное строение: центр положительных зарядов не совпадает с центром отрицательных. Из-за этого каждая молекула уже сама по себе является диполем.</p>
+      <div class="highlight">🔴 Пример: молекула воды (H₂O). Угол H–O–H = 104.5°, поэтому молекула асимметрична. Дипольный момент воды: p ≈ 6.2 × 10⁻³⁰ Кл·м</div>
+      <h4>Без поля — хаос</h4>
+      <p>При отсутствии электрического поля молекулы ориентированы хаотично из-за теплового движения. Суммарный дипольный момент всего вещества = 0.</p>
+      <h4>В электрическом поле — порядок</h4>
+      <ul>
+        <li>🔄 Поле оказывает ориентирующий момент на диполи</li>
+        <li>📐 Молекулы стремятся повернуться вдоль поля</li>
+        <li>🌡️ Тепловое движение мешает полному упорядочению</li>
+        <li>⚖️ Устанавливается частичная ориентация</li>
+      </ul>
+      <h4>Особенности</h4>
+      <ul>
+        <li>ε значительно выше, чем у неполярных (у воды ε ≈ 81!)</li>
+        <li>Поляризация уменьшается при нагреве (больше хаоса)</li>
+        <li>Время ориентации диполей: ~10⁻¹⁰ – 10⁻¹² с</li>
+      </ul>
+      <div class="formula">P = n · p₀ · L(a)  — формула Ланжевена</div>
+    `
+  },
+  {
+    num: '08',
+    icon: '⚪',
+    title: 'Неполярные диэлектрики (подробно)',
+    preview: 'Симметричное строение, индуцированный диполь, упругая поляризация.',
+    body: `
+      <h4>Строение неполярных диэлектриков</h4>
+      <p>В неполярных диэлектриках молекулы симметричны: центры положительных и отрицательных зарядов совпадают. Дипольного момента нет.</p>
+      <div class="highlight">⚪ Примеры: H₂ (p=0), O₂ (p=0), N₂ (p=0), CH₄, CCl₄, парафин.</div>
+      <h4>Что происходит в поле?</h4>
+      <p>Внешнее электрическое поле «растягивает» электронную оболочку атома: электроны смещаются против поля, ядро — по полю. Возникает <b>индуцированный</b> (наведённый) диполь.</p>
+      <ul>
+        <li>🔵 Смещение очень мало (~10⁻¹⁵ м)</li>
+        <li>⚡ Но таких атомов в 1 см³ порядка 10²³ — эффект заметен</li>
+        <li>🔗 Индуцированный момент пропорционален полю: p = α·E</li>
+      </ul>
+      <div class="formula">p_ind = α · E</div>
+      <p>где α — поляризуемость молекулы (Ф·м²)</p>
+      <h4>Упругая поляризация</h4>
+      <p>Как только поле исчезает — диполь мгновенно «схлопывается». Это упругая (электронная) поляризация. Времени задержки практически нет (~10⁻¹⁵ с).</p>
+      <div class="highlight">📌 Неполярные диэлектрики хорошо работают на высоких частотах — их поляризация успевает следовать даже за световыми волнами.</div>
+    `
+  },
+  {
+    num: '09',
+    icon: '🔄',
+    title: 'Поляризация: сущность явления',
+    preview: 'Что такое поляризация, вектор поляризации, связанные заряды.',
+    body: `
+      <h4>Определение поляризации</h4>
+      <div class="highlight">📌 Поляризация — процесс упорядочения электрических диполей в диэлектрике под действием внешнего электрического поля.</div>
+      <h4>Вектор поляризации P</h4>
+      <p>Для количественного описания поляризации вводят вектор поляризации <b>P</b> — дипольный момент единицы объёма диэлектрика.</p>
+      <div class="formula">P = ΔP / ΔV  (Кл/м²)</div>
+      <h4>Связь с полем</h4>
+      <p>Для линейных диэлектриков вектор поляризации пропорционален напряжённости поля:</p>
+      <div class="formula">P = ε₀ · χ · E</div>
+      <p>где χ — диэлектрическая восприимчивость, ε₀ = 8.85 × 10⁻¹² Ф/м.</p>
+      <h4>Связанные (поляризационные) заряды</h4>
+      <ul>
+        <li>📌 На поверхности поляризованного диэлектрика появляются заряды</li>
+        <li>🔴 Они не могут течь — они «связаны» с молекулами</li>
+        <li>⚡ Поверхностная плотность: σ_св = P · cos(θ)</li>
+      </ul>
+      <h4>Что НЕ является поляризацией</h4>
+      <ul>
+        <li>❌ Движение свободных зарядов (это уже ток)</li>
+        <li>❌ Намагничивание (другой эффект)</li>
+        <li>❌ Механическая деформация (хотя связана через пьезоэффект)</li>
+      </ul>
+    `
+  },
+  {
+    num: '10',
+    icon: '🔴🔄',
+    title: 'Механизм поляризации полярных диэлектриков',
+    preview: 'Ориентационная поляризация, роль температуры, время релаксации.',
+    body: `
+      <h4>Ориентационная (дипольная) поляризация</h4>
+      <p>В полярных диэлектриках основной механизм — <b>ориентационная поляризация</b>. Молекулы-диполи поворачиваются в поле.</p>
+      <h4>Этапы процесса</h4>
+      <ul>
+        <li>1️⃣ Без поля: хаотичные направления всех диполей, P = 0</li>
+        <li>2️⃣ Включили поле E: момент сил M = p × E начинает поворот</li>
+        <li>3️⃣ Тепловое движение противодействует упорядочению</li>
+        <li>4️⃣ Устанавливается равновесие: частичная ориентация</li>
+        <li>5️⃣ Суммарный P ≠ 0, направлен вдоль E</li>
+      </ul>
+      <h4>Роль температуры</h4>
+      <div class="highlight">
+        📈 При нагреве: тепловое движение усиливается → ориентация нарушается → P уменьшается.<br>
+        📉 При охлаждении: движение замедляется → ориентация улучшается → P растёт.
+      </div>
+      <div class="formula">P ∝ 1/T  (закон Кюри для диэлектриков)</div>
+      <h4>Время релаксации</h4>
+      <p>После выключения поля диполи возвращаются в хаотичное состояние не мгновенно. Время релаксации τ — от 10⁻¹² с (газы) до секунд (вязкие жидкости и твёрдые тела).</p>
+      <div class="highlight">📌 На высоких частотах (ГГц) диполи не успевают ориентироваться — ориентационная поляризация исчезает. Так работает СВЧ-нагрев воды!</div>
+    `
+  },
+  {
+    num: '11',
+    icon: '⚪🔄',
+    title: 'Механизм поляризации неполярных диэлектриков',
+    preview: 'Электронная и ионная поляризация, скорость отклика, поляризуемость.',
+    body: `
+      <h4>Электронная поляризация</h4>
+      <p>Главный механизм в неполярных диэлектриках — <b>электронная (упругая) поляризация</b>.</p>
+      <ul>
+        <li>🔵 Поле смещает электронную оболочку относительно ядра</li>
+        <li>⚡ Смещение: δ = α·E/e (порядка 10⁻¹⁵ м)</li>
+        <li>🔗 Возникает индуцированный диполь: p = α·E</li>
+        <li>⚡ Убрали поле → диполь исчез мгновенно (~10⁻¹⁵ с)</li>
+      </ul>
+      <div class="formula">α = 4πε₀r³  (для сферически симметричного атома)</div>
+      <h4>Ионная поляризация</h4>
+      <p>В ионных кристаллах (NaCl) — дополнительный механизм: смещение ионов разного знака в противоположные стороны.</p>
+      <ul>
+        <li>🟡 Ионы смещаются на расстояния ~10⁻¹² м</li>
+        <li>⏱️ Время отклика: ~10⁻¹³ с</li>
+        <li>🌡️ Слабо зависит от температуры</li>
+      </ul>
+      <h4>Сравнение механизмов</h4>
+      <div class="highlight">
+        ⚡ Электронная: τ ~ 10⁻¹⁵ с, слабая зависимость от T<br>
+        🟡 Ионная: τ ~ 10⁻¹³ с, слабая зависимость от T<br>
+        🔴 Ориентационная: τ ~ 10⁻¹² – 10⁻² с, сильная зависимость от T
+      </div>
+    `
+  },
+  {
+    num: '12',
+    icon: '🛡️',
+    title: 'Поверхностные заряды и внутреннее поле',
+    preview: 'Связанные заряды на поверхности, как они ослабляют поле внутри диэлектрика.',
+    body: `
+      <h4>Откуда берутся поверхностные заряды?</h4>
+      <p>При поляризации внутри диэлектрика «плюсы» и «минусы» компенсируют друг друга. Но на поверхности пластины компенсации нет — там остаются нескомпенсированные связанные заряды.</p>
+      <h4>Распределение зарядов</h4>
+      <ul>
+        <li>➕ На грани, обращённой к «−» пластине конденсатора → «+» заряды</li>
+        <li>➖ На грани, обращённой к «+» пластине → «−» заряды</li>
+      </ul>
+      <div class="highlight">📌 Эти заряды НЕЛЬЗЯ снять, перенести или создать ток — они «связаны» с молекулами вещества.</div>
+      <h4>Собственное поле диэлектрика</h4>
+      <p>Поверхностные заряды создают своё поле E' — направленное <b>ПРОТИВ</b> внешнего поля E₀.</p>
+      <div class="formula">E_внутри = E₀ − E'  =  E₀ / ε</div>
+      <h4>Вектор электрической индукции</h4>
+      <p>Вводят вектор D, который удобен тем, что зависит только от свободных зарядов:</p>
+      <div class="formula">D = ε₀ · ε · E = ε₀ · E + P</div>
+      <ul>
+        <li>D — вектор электрического смещения (Кл/м²)</li>
+        <li>Нормальная составляющая D непрерывна на границе раздела</li>
+        <li>Используется в уравнениях Максвелла</li>
+      </ul>
+    `
+  },
+  {
+    num: '13',
+    icon: '🎯',
+    title: 'Диэлектрическая проницаемость. Итог темы',
+    preview: 'Смысл ε, значения для разных веществ, применение в технике. Итоговое резюме.',
+    body: `
+      <h4>Что такое диэлектрическая проницаемость?</h4>
+      <div class="highlight">📌 Диэлектрическая проницаемость ε — физическая величина, показывающая, во сколько раз электрическое поле ослабляется внутри диэлектрика по сравнению с вакуумом.</div>
+      <div class="formula">ε = E₀ / E = C / C₀</div>
+      <p>Также: ε показывает, во сколько раз ёмкость конденсатора с диэлектриком больше ёмкости без него.</p>
+      <h4>Значения ε для разных веществ</h4>
+      <ul>
+        <li>💨 Воздух: ε ≈ 1.0006</li>
+        <li>🪨 Стекло: ε ≈ 5–10</li>
+        <li>🧴 Парафин: ε ≈ 2.2</li>
+        <li>💧 Вода (20°C): ε ≈ 81</li>
+        <li>🔷 Слюда: ε ≈ 5–8</li>
+        <li>⚡ Сегнетоэлектрики: ε ≈ 10³–10⁴</li>
+      </ul>
+      <h4>Применение в технике</h4>
+      <ul>
+        <li>🔋 Конденсаторы: C = ε₀·ε·S/d</li>
+        <li>📡 Антенны и волноводы</li>
+        <li>💻 Подложки микросхем</li>
+        <li>📷 Оптические покрытия</li>
+      </ul>
+      <h4>🎯 Итог всей темы</h4>
+      <div class="highlight">
+        ✅ Диэлектрики — вещества без свободных зарядов<br>
+        ✅ Делятся на полярные и неполярные<br>
+        ✅ В поле поляризуются (смещение или поворот)<br>
+        ✅ Поверхностные заряды ослабляют внутреннее поле<br>
+        ✅ Всё характеризуется через ε — диэлектрическую проницаемость
+      </div>
+      <div class="formula">D = ε₀εE  |  P = ε₀χE  |  ε = 1 + χ</div>
+    `
+  }
+];
+
+// ================================================================
+//  RENDER TOPIC CARDS
+// ================================================================
+const grid = document.getElementById('topicsGrid');
+topics.forEach((t, i) => {
+  const card = document.createElement('div');
+  card.className = 'topic-card';
+  card.innerHTML = `
+    <div class="topic-num">Тема ${t.num}</div>
+    <div class="topic-icon">${t.icon}</div>
+    <div class="topic-title">${t.title}</div>
+    <div class="topic-preview">${t.preview}</div>
+  `;
+  card.onclick = () => openModal(i);
+  grid.appendChild(card);
+});
+
+// ================================================================
+//  MODAL LOGIC
+// ================================================================
+function openModal(i) {
+  const t = topics[i];
+  document.getElementById('modal-num').textContent = `Тема ${t.num}`;
+  document.getElementById('modal-title').textContent = `${t.icon} ${t.title}`;
+  document.getElementById('modal-body').innerHTML = t.body;
+  document.getElementById('modal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) closeModal();
+});
+
+// ================================================================
+//  POPUP LOGIC
+// ================================================================
+function showPopup(key) {
+  const d = popupData[key];
+  document.getElementById('popup-title').textContent = d.title;
+  document.getElementById('popup-text').textContent  = d.text;
+  document.getElementById('popup').classList.add('show');
+  document.getElementById('overlay').classList.add('show');
+}
+function closePopup() {
+  document.getElementById('popup').classList.remove('show');
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// ================================================================
+//  PROGRESS BAR
+// ================================================================
+window.addEventListener('scroll', () => {
+  const scrolled = window.scrollY;
+  const total = document.body.scrollHeight - window.innerHeight;
+  document.getElementById('progressBar').style.width = (scrolled/total*100) + '%';
+});
+
+// ================================================================
+//  3D ATOM CANVAS
+// ================================================================
+const canvas = document.getElementById('atomCanvas');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const cx = W/2, cy = H/2;
+
+// State
+let rotX = 0.3, rotY = 0.3;
+let dragging = false, lastX = 0, lastY = 0;
+let autoRotate = true;
+let time = 0;
+
+// Electrons config
+const electronOrbits = [
+  { a: 150, b: 55,  tilt: 0,    speed: 0.9,  phase: 0,        color: '#4466ff', glow: '#2244cc' },
+  { a: 140, b: 60,  tilt: 1.1,  speed: -0.7, phase: 2.1,      color: '#6688ff', glow: '#3355dd' },
+  { a: 160, b: 50,  tilt: 2.2,  speed: 0.6,  phase: 4.2,      color: '#88aaff', glow: '#5577ee' },
+  { a: 130, b: 65,  tilt: -0.8, speed: -1.1, phase: 1.0,      color: '#aabbff', glow: '#7799ff' },
+];
+
+// Field state
+let fieldOn = false;
+let fieldTimer = 0;
+
+function project3D(x, y, z) {
+  const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
+  const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
+  let y1 = y * cosX - z * sinX;
+  let z1 = y * sinX + z * cosX;
+  let x2 = x * cosY + z1 * sinY;
+  let z2 = -x * sinY + z1 * cosY;
+  const fov = 600;
+  const scale = fov / (fov + z2 + 50);
+  return { sx: cx + x2 * scale, sy: cy + y1 * scale, sz: z2, scale };
+}
+
+function drawGlow(x, y, r, color, alpha=0.3) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r*3);
+  g.addColorStop(0, color.replace(')', `,${alpha})`).replace('rgb', 'rgba'));
+  g.addColorStop(1, 'transparent');
+  ctx.beginPath();
+  ctx.arc(x, y, r*3, 0, Math.PI*2);
+  ctx.fillStyle = g;
+  ctx.fill();
+}
+
+// Clickable zones
+const clickZones = [];
+
+function drawFrame() {
+  ctx.clearRect(0, 0, W, H);
+  clickZones.length = 0;
+
+  time += 0.016;
+  if (autoRotate) { rotY += 0.005; rotX += 0.001; }
+
+  // Field effect offset
+  let fieldOffset = 0;
+  if (fieldOn) {
+    fieldTimer += 0.02;
+    fieldOffset = Math.sin(fieldTimer) * 18;
+    if (fieldTimer > Math.PI * 4) { fieldOn = false; fieldTimer = 0; }
+  }
+
+  // ---- Orbits (back) ----
+  const orbitSegments = 80;
+  electronOrbits.forEach(orb => {
+    const pts = [];
+    for (let i=0; i<=orbitSegments; i++) {
+      const θ = (i/orbitSegments) * Math.PI * 2;
+      const ox = orb.a * Math.cos(θ);
+      const oy = orb.b * Math.sin(θ) * Math.cos(orb.tilt);
+      const oz = orb.b * Math.sin(θ) * Math.sin(orb.tilt);
+      pts.push(project3D(ox, oy, oz));
+    }
+    ctx.beginPath();
+    pts.forEach((p,i) => i===0 ? ctx.moveTo(p.sx,p.sy) : ctx.lineTo(p.sx,p.sy));
+    ctx.strokeStyle = orb.color + '33';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // ---- Electrons ----
+  const electrons = electronOrbits.map(orb => {
+    const θ = orb.phase + time * orb.speed;
+    const ox = orb.a * Math.cos(θ) + (fieldOn ? fieldOffset * 0.3 : 0);
+    const oy = orb.b * Math.sin(θ) * Math.cos(orb.tilt);
+    const oz = orb.b * Math.sin(θ) * Math.sin(orb.tilt);
+    return { proj: project3D(ox, oy, oz), orb };
+  });
+
+  // Sort by z
+  electrons.sort((a,b) => a.proj.sz - b.proj.sz);
+
+  electrons.forEach(({ proj: p, orb }) => {
+    const r = 8 * p.scale;
+    // Glow
+    const grd = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, r*3);
+    grd.addColorStop(0, orb.color + '66');
+    grd.addColorStop(1, 'transparent');
+    ctx.beginPath(); ctx.arc(p.sx, p.sy, r*3, 0, Math.PI*2);
+    ctx.fillStyle = grd; ctx.fill();
+    // Body
+    const grad = ctx.createRadialGradient(p.sx-r*0.3, p.sy-r*0.3, 0, p.sx, p.sy, r);
+    grad.addColorStop(0, '#aaccff');
+    grad.addColorStop(1, orb.color);
+    ctx.beginPath(); ctx.arc(p.sx, p.sy, r, 0, Math.PI*2);
+    ctx.fillStyle = grad; ctx.fill();
+    // Label
+    ctx.fillStyle = '#ffffffcc';
+    ctx.font = `bold ${Math.max(8, 10*p.scale)}px Arial`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('e⁻', p.sx, p.sy);
+
+    clickZones.push({ x: p.sx, y: p.sy, r: r+8, key: 'electron' });
+  });
+
+  // ---- Nucleus ----
+  const nucl = project3D(fieldOn ? fieldOffset * 0.05 : 0, 0, 0);
+  const nr = 28 * nucl.scale;
+  // Outer glow
+  const ng2 = ctx.createRadialGradient(nucl.sx, nucl.sy, 0, nucl.sx, nucl.sy, nr*4);
+  ng2.addColorStop(0, '#ff660044');
+  ng2.addColorStop(1, 'transparent');
+  ctx.beginPath(); ctx.arc(nucl.sx, nucl.sy, nr*4, 0, Math.PI*2);
+  ctx.fillStyle = ng2; ctx.fill();
+  // Body
+  const ng = ctx.createRadialGradient(nucl.sx-nr*0.3, nucl.sy-nr*0.35, 0, nucl.sx, nucl.sy, nr);
+  ng.addColorStop(0, '#ffaa44');
+  ng.addColorStop(0.5, '#ff6600');
+  ng.addColorStop(1, '#aa2200');
+  ctx.beginPath(); ctx.arc(nucl.sx, nucl.sy, nr, 0, Math.PI*2);
+  ctx.fillStyle = ng; ctx.fill();
+  // Label
+  ctx.fillStyle = '#ffffffee';
+  ctx.font = `bold ${Math.max(10, 14*nucl.scale)}px Arial`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('+', nucl.sx, nucl.sy);
+
+  clickZones.push({ x: nucl.sx, y: nucl.sy, r: nr + 10, key: 'nucleus' });
+
+  // ---- Polarization arrow (when field is on) ----
+  if (fieldOn) {
+    const alpha = Math.min(1, fieldTimer / 1.5);
+    ctx.globalAlpha = alpha * 0.7;
+    ctx.strokeStyle = '#ff4444';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6,4]);
+    ctx.beginPath();
+    ctx.moveTo(cx - 180, cy);
+    ctx.lineTo(cx + 180, cy);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Arrow heads
+    [[cx+180, 1],[cx-180, -1]].forEach(([x, dir]) => {
+      ctx.beginPath();
+      ctx.moveTo(x, cy);
+      ctx.lineTo(x - dir*16, cy-8);
+      ctx.lineTo(x - dir*16, cy+8);
+      ctx.fillStyle = '#ff4444';
+      ctx.fill();
+    });
+    ctx.fillStyle = '#ff8888';
+    ctx.font = '13px Arial'; ctx.textAlign = 'center';
+    ctx.fillText('E  (поле)', cx, cy - 20);
+    ctx.globalAlpha = 1;
+
+    // Polarization label
+    ctx.globalAlpha = alpha * 0.8;
+    ctx.fillStyle = '#ffaa44';
+    ctx.font = 'bold 14px Arial';
+    ctx.fillText('⚡ Поляризация!', cx, cy + 185);
+    ctx.globalAlpha = 1;
+  }
+
+  // ---- Molecule dots (outer, for click) ----
+  const molPositions = [
+    { ox: 0, oy: 185, oz: 0 },
+    { ox: 185, oy: 0, oz: 0 },
+  ];
+  molPositions.forEach(m => {
+    const p = project3D(m.ox, m.oy, m.oz);
+    const r = 9 * p.scale;
+    const mg = ctx.createRadialGradient(p.sx-r*0.3, p.sy-r*0.3, 0, p.sx, p.sy, r);
+    mg.addColorStop(0, '#aaffaa');
+    mg.addColorStop(1, '#228822');
+    ctx.beginPath(); ctx.arc(p.sx, p.sy, r, 0, Math.PI*2);
+    ctx.fillStyle = mg; ctx.fill();
+    ctx.fillStyle = '#ffffffcc';
+    ctx.font = `${Math.max(7,9*p.scale)}px Arial`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('M', p.sx, p.sy);
+    clickZones.push({ x: p.sx, y: p.sy, r: r+8, key: 'molecule' });
+  });
+
+  requestAnimationFrame(drawFrame);
+}
+drawFrame();
+
+// ---- Canvas click ----
+canvas.addEventListener('click', e => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  for (const z of clickZones) {
+    if (Math.hypot(mx-z.x, my-z.y) < z.r) {
+      showPopup(z.key);
+      // Trigger polarization if nucleus or electron clicked
+      if (z.key === 'electron' || z.key === 'nucleus') {
+        fieldOn = true; fieldTimer = 0;
+      }
+      return;
+    }
+  }
+  // Click on empty space = toggle field
+  fieldOn = true; fieldTimer = 0;
+  showPopup('polarization');
+});
+
+// ---- Drag to rotate ----
+canvas.addEventListener('mousedown', e => {
+  dragging = true; autoRotate = false;
+  lastX = e.clientX; lastY = e.clientY;
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  rotY += (e.clientX - lastX) * 0.01;
+  rotX += (e.clientY - lastY) * 0.01;
+  lastX = e.clientX; lastY = e.clientY;
+});
+window.addEventListener('mouseup', () => {
+  dragging = false;
+  setTimeout(() => { autoRotate = true; }, 2000);
+});
+
+// Touch
+canvas.addEventListener('touchstart', e => {
+  dragging = true; autoRotate = false;
+  lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+  e.preventDefault();
+}, {passive:false});
+canvas.addEventListener('touchmove', e => {
+  if (!dragging) return;
+  rotY += (e.touches[0].clientX - lastX) * 0.012;
+  rotX += (e.touches[0].clientY - lastY) * 0.012;
+  lastX = e.touches[0].clientX; lastY = e.touches[0].clientY;
+  e.preventDefault();
+}, {passive:false});
+canvas.addEventListener('touchend', () => {
+  dragging = false;
+  setTimeout(() => { autoRotate = true; }, 2000);
+});
+
+// Keyboard close
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); closePopup(); }
+});
+</script>
+</body>
+</html>
