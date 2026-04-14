@@ -1,0 +1,12 @@
+#atomCanvas {
+  width: 90vw;
+  max-width: 600px;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  border-radius: 50%;
+  box-shadow: 0 0 60px #2244aa44;
+  cursor: grab;
+  touch-action: none;
+  display: block;
+  margin: 0 auto;
+}
